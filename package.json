@@ -1,0 +1,27 @@
+{
+  "name": "shelljs",
+  "version": "1.0.0",
+  "description": "A minimal shell written in JavaScript with support for built-in commands, external programs, and output redirection.",
+  "main": "app/main.js",
+  "scripts": {
+    "dev": "node app/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Baylox/ShellJS.git"
+  },
+  "keywords": [
+    "shell",
+    "javascript",
+    "cli",
+    "codecrafters",
+    "nodejs"
+  ],
+  "author": "Baylox",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Baylox/ShellJS/issues"
+  },
+  "homepage": "https://github.com/Baylox/ShellJS#readme"
+}
+
