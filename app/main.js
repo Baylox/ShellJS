@@ -9,16 +9,49 @@ const pathSeparator = process.platform === "win32" ? ";" : ":";
 
 // Fonction de complétion
 function completer(line) {
-  const completions = builtins;
-  const hits = completions.filter(cmd => cmd.startsWith(line));
+  const completions = new Set();
 
-  if (hits.length === 0) {
-    process.stdout.write('\x07'); // Cloche du terminal ! 
-    return [[], line]; // Pas de suggestions
+  addBuiltinsToCompletions(completions, line);
+  addExecutablesToCompletions(completions, line);
+
+  const results = Array.from(completions).map(cmd => cmd + ' ');
+
+  if (results.length === 0) {
+    process.stdout.write('\x07'); // Cloche si aucun match
+    return [[], line];
   }
+  return [results, line]; // On retourne les résultats et la ligne
+}
 
-  const results = hits.map(cmd => cmd + ' '); // on ajoute l’espace
-  return [results, line];
+function addBuiltinsToCompletions(completions, line) {
+  for (const builtin of builtins) {
+    if (builtin.startsWith(line)) {
+      completions.add(builtin);
+    }
+  }
+}
+
+function addExecutablesToCompletions(completions, line) {
+  const pathDirs = process.env.PATH ? process.env.PATH.split(pathSeparator) : [];
+  for (const dir of pathDirs) {
+    try {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const fullPath = path.join(dir, file);
+        if (isExecutableFile.call(this, file, fullPath, line)) {
+          completions.add(file);
+        }
+      }
+    } catch (e) {
+      // Ignorer les erreurs de lecture de dossier
+    }
+  }
+}
+
+function isExecutableFile(file, fullPath, line) {
+  return file.startsWith(line) &&
+    fs.statSync(fullPath).isFile() &&
+    fs.accessSync(fullPath, fs.constants.X_OK) === undefined;
 }
 
 // Création de l'interface readline
@@ -136,6 +169,10 @@ function findExecutable(target) {
   console.log(`${target}: not found`);
   return false;
 }
+
+
+
+
 
 
 
