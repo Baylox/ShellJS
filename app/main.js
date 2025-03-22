@@ -1,65 +1,26 @@
 const readline = require("readline");
-const builtins = ["echo", "exit", "type"]; // Liste des builtins
-const fs = require("fs"); 
-const path = require("path"); // Module pour manipuler les chemins de fichiers
+const { createCompleter } = require("./completion"); // 👈
 
-const { spawn } = require("child_process"); // Module pour exécuter des commandes système
+const fs = require("fs");
+const path = require("path");
+const { spawn } = require("child_process");
+
+const builtins = ["echo", "exit", "type"];
 const pathSeparator = process.platform === "win32" ? ";" : ":";
 
+// On crée une variable rl pour pouvoir l'utiliser dans la fonction par la suite
+// On ne peut pas utiliser rl.prompt() dans la fonction createCompleter car rl n'est pas encore défini
+let rl;
 
-// Fonction de complétion
-function completer(line) {
-  const completions = new Set();
-
-  addBuiltinsToCompletions(completions, line);
-  addExecutablesToCompletions(completions, line);
-
-  const results = Array.from(completions).map(cmd => cmd + ' ');
-
-  if (results.length === 0) {
-    process.stdout.write('\x07'); // Cloche si aucun match
-    return [[], line];
-  }
-  return [results, line]; // On retourne les résultats et la ligne
-}
-
-function addBuiltinsToCompletions(completions, line) {
-  for (const builtin of builtins) {
-    if (builtin.startsWith(line)) {
-      completions.add(builtin);
-    }
-  }
-}
-
-function addExecutablesToCompletions(completions, line) {
-  const pathDirs = process.env.PATH ? process.env.PATH.split(pathSeparator) : [];
-  for (const dir of pathDirs) {
-    try {
-      const files = fs.readdirSync(dir);
-      for (const file of files) {
-        const fullPath = path.join(dir, file);
-        if (isExecutableFile.call(this, file, fullPath, line)) {
-          completions.add(file);
-        }
-      }
-    } catch (e) {
-      // Ignorer les erreurs de lecture de dossier
-    }
-  }
-}
-
-function isExecutableFile(file, fullPath, line) {
-  return file.startsWith(line) &&
-    fs.statSync(fullPath).isFile() &&
-    fs.accessSync(fullPath, fs.constants.X_OK) === undefined;
-}
+// On crée le completer AVANT d'initialiser rl
+const completer = (line) => createCompleter(builtins, pathSeparator, rl)(line);
 
 // Création de l'interface readline
-const rl = readline.createInterface({  // Interface pour lire les lignes
+rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
   prompt: "$ ",
-  completer: completer // On ajoute la fonction de complétion
+  completer: completer
 });
 
 function resolveExecutable(command) {
