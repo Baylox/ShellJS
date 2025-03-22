@@ -6,11 +6,21 @@ const path = require("path"); // Module pour manipuler les chemins de fichiers
 const { spawn } = require("child_process"); // Module pour exécuter des commandes système
 const pathSeparator = process.platform === "win32" ? ";" : ":";
 
+
+// Fonction de complétion
+function completer(line) {
+  const completions = builtins; // On récupère les commandes builtins
+  const hits = completions.filter(cmd => cmd.startsWith(line)); // On filtre les commandes qui commencent par la ligne entrée par l'utilisateur
+  const results = hits.map(cmd => cmd + ' '); // On ajoute un espace à la fin des commandes trouvées
+  return [results.length ? results : completions.map(cmd => cmd + ' '), line]; // On retourne les commandes trouvées ou toutes les commandes
+}
+
 // Création de l'interface readline
 const rl = readline.createInterface({  // Interface pour lire les lignes
   input: process.stdin,
   output: process.stdout,
-  prompt: "$ "
+  prompt: "$ ",
+  completer: completer // On ajoute la fonction de complétion
 });
 
 function resolveExecutable(command) {
@@ -120,3 +130,6 @@ function findExecutable(target) {
   console.log(`${target}: not found`);
   return false;
 }
+
+
+
