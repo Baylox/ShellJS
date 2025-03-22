@@ -9,10 +9,16 @@ const pathSeparator = process.platform === "win32" ? ";" : ":";
 
 // Fonction de complétion
 function completer(line) {
-  const completions = builtins; // On récupère les commandes builtins
-  const hits = completions.filter(cmd => cmd.startsWith(line)); // On filtre les commandes qui commencent par la ligne entrée par l'utilisateur
-  const results = hits.map(cmd => cmd + ' '); // On ajoute un espace à la fin des commandes trouvées
-  return [results.length ? results : completions.map(cmd => cmd + ' '), line]; // On retourne les commandes trouvées ou toutes les commandes
+  const completions = builtins;
+  const hits = completions.filter(cmd => cmd.startsWith(line));
+
+  if (hits.length === 0) {
+    process.stdout.write('\x07'); // Cloche du terminal ! 
+    return [[], line]; // Pas de suggestions
+  }
+
+  const results = hits.map(cmd => cmd + ' '); // on ajoute l’espace
+  return [results, line];
 }
 
 // Création de l'interface readline
@@ -130,6 +136,10 @@ function findExecutable(target) {
   console.log(`${target}: not found`);
   return false;
 }
+
+
+
+
 
 
 
