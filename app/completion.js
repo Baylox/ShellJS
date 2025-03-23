@@ -22,79 +22,80 @@ function getLongestCommonPrefix(strings) {
 // Crée la fonction de complétion utilisée par readline.
 function createCompleter(builtins, pathSeparator, rl) {
   return function completer(line) {
-  const completions = buildCompletions.call(this, line, builtins, pathSeparator);
+    const completions = buildCompletions.call(this, line, builtins, pathSeparator);
 
-  const matches = Array.from(completions).sort(); // A faire avant le LCP (Longest Prefix Auto-completion)
-  const longestCommonPrefix = getLongestCommonPrefix(matches);
+    const matches = Array.from(completions).sort(); // A faire avant le LCP (Longest Prefix Auto-completion)
+    const longestCommonPrefix = getLongestCommonPrefix(matches);
 
-  if (longestCommonPrefix.length > line.length) {
-    return completeWithLongestCommonPrefix.call(this, longestCommonPrefix, line, matches);
+    if (longestCommonPrefix.length > line.length) {
+      return completeWithLongestCommonPrefix.call(this, longestCommonPrefix, line, matches);
+    }
+
+    if (matches.length === 0) {
+      return handleNoMatch.call(this, line);
+    }
+
+    if (matches.length === 1) {
+      return completeUniqueMatch.call(this, matches[0], line);
+    }
+
+    return handleMultipleMatches.call(this, matches, line);
+  };
+
+  function buildCompletions(line, builtins, pathSeparator) {
+    const completions = new Set();
+    addBuiltinsToCompletions(completions, line, builtins);
+    addExecutablesToCompletions(completions, line, pathSeparator);
+    return completions;
   }
 
-  if (matches.length === 0) {
-    return handleNoMatch.call(this, line);
+  function completeWithLongestCommonPrefix(longestCommonPrefix, line, matches) {
+    tabPressCount = 0;
+    lastTabLine = null;
+    const filteredMatches = matches.filter(m => m.startsWith(longestCommonPrefix));
+
+    if (filteredMatches.length === 1 && filteredMatches[0] === longestCommonPrefix) {
+      return [[longestCommonPrefix + ' '], line];
+    }
+
+    return [[longestCommonPrefix], line];
   }
 
-  if (matches.length === 1) {
-    return completeUniqueMatch.call(this, matches[0], line);
-  }
-
-  return handleMultipleMatches.call(this, matches, line);
-};
-
-function buildCompletions(line, builtins, pathSeparator) {
-  const completions = new Set();
-  addBuiltinsToCompletions(completions, line, builtins);
-  addExecutablesToCompletions(completions, line, pathSeparator);
-  return completions;
-}
-
-function completeWithLongestCommonPrefix(longestCommonPrefix, line, matches) {
-  tabPressCount = 0;
-  lastTabLine = null;
-  const filteredMatches = matches.filter(m => m.startsWith(longestCommonPrefix));
-
-  if (filteredMatches.length === 1 && filteredMatches[0] === longestCommonPrefix) {
-    return [[longestCommonPrefix + ' '], line];
-  }
-  
-  return [[longestCommonPrefix], line];
-}
-
-function handleNoMatch(line) {
-  process.stdout.write('\x07');
-  tabPressCount = 0;
-  lastTabLine = null;
-  return [[], line];
-}
-
-function completeUniqueMatch(match, line) {
-  tabPressCount = 0;
-  lastTabLine = null;
-  return [[match + ' '], line];
-}
-
-function handleMultipleMatches(matches, line) {
-  if (line === lastTabLine) {
-    tabPressCount++;
-  } else {
-    tabPressCount = 1;
-    lastTabLine = line;
-  }
-
-  if (tabPressCount === 1) {
+  function handleNoMatch(line) {
     process.stdout.write('\x07');
+    tabPressCount = 0;
+    lastTabLine = null;
     return [[], line];
   }
 
-  if (tabPressCount === 2) {
-    console.log('\n' + matches.join('  '));
-    rl.prompt(); // On affiche le prompt
-    return [[], line];
+  function completeUniqueMatch(match, line) {
+    tabPressCount = 0;
+    lastTabLine = null;
+    return [[match + ' '], line];
   }
 
-  return [[], line];
-}
+  function handleMultipleMatches(matches, line) {
+    if (line === lastTabLine) {
+      tabPressCount++;
+    } else {
+      tabPressCount = 1;
+      lastTabLine = line;
+    }
+  
+    if (tabPressCount === 1) {
+      process.stdout.write('\x07'); // fait "ding"
+      return [[], line];
+    }
+  
+    if (tabPressCount === 2) {
+      console.log('\n' + matches.join('  ')); // affiche les matches
+      const trimmedLine = line.replace(/\s+$/, ""); // enlève les espaces à la fin
+      process.stdout.write(`\r$ ${trimmedLine}`); // réécrit la ligne
+      return [[], trimmedLine];
+    }
+  
+    return [[], line];
+  }
 }
 
 

@@ -50,27 +50,35 @@ function findExecutable(target, pathSeparator) {
 }
 // Ajoute les commandes builtins qui commencent par le préfixe.
 function handleCd(params, rl) {
-  const targetPath = params[0];
+  const target = params[0];
 
-  if (!targetPath) {
+  if (!target) {
     rl.prompt();
     return;
   }
 
-  // On résout le chemin absolu (même pour un chemin relatif)
-  const resolvedPath = path.resolve(process.cwd(), targetPath);
+  let resolvedPath;
+
+  if (target === "~") {
+    resolvedPath = process.env.HOME;
+  } else if (target.startsWith("~/")) {
+    resolvedPath = path.join(process.env.HOME, target.slice(2));
+  } else {
+    resolvedPath = path.resolve(process.cwd(), target);
+  }
 
   try {
-    const stat = fs.statSync(resolvedPath);
-    if (!stat.isDirectory()) throw new Error();
+    const stats = fs.statSync(resolvedPath);
+    if (!stats.isDirectory()) throw new Error();
 
     process.chdir(resolvedPath);
   } catch {
-    console.log(`cd: ${targetPath}: No such file or directory`);
+    console.log(`cd: ${target}: No such file or directory`);
   }
 
   rl.prompt();
 }
+
 
 module.exports = {
   handlePwd,
