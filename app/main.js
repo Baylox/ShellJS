@@ -1,12 +1,15 @@
 const readline = require("readline");
-const { createCompleter } = require("./completion"); // 👈
+const { createCompleter } = require("./completion"); 
 
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
-const builtins = ["echo", "exit", "type"];
+const { handlePwd, handleEcho, handleExit, handleType, handleCd } = require("./builtins");
 const pathSeparator = process.platform === "win32" ? ";" : ":";
+
+// Liste des builtins ici (pour autocompletion et type)
+const builtins = ["echo", "exit", "type", "pwd", "cd"];
 
 // On crée une variable rl pour pouvoir l'utiliser dans la fonction par la suite
 // On ne peut pas utiliser rl.prompt() dans la fonction createCompleter car rl n'est pas encore défini
@@ -73,69 +76,19 @@ rl.on("line", (input) => {
   if (command === "exit") {
     handleExit(params);
   } else if (command === "echo") {
-    handleEcho(params);
+    handleEcho(params, rl);
+  } else if (command === "pwd") {
+    handlePwd(params, rl);
   } else if (command === "type") {
-    handleType(params);
-    rl.prompt(); 
+    handleType(params, rl, builtins, pathSeparator);
+  } else if (command === "cd") {
+    handleCd(params, rl);
   } else {
-    executeExternalCommand(command, params);  // Exécuter un programme externe, on passe rl pour pouvoir afficher le prompt après
+    executeExternalCommand(command, params);
   }
 });
 
 rl.prompt(); // Affiche le premier prompt
-
-// Exit
-function handleExit(params) {
-  const exitCode = parseInt(params[0], 10) || 0;
-  rl.close();
-  process.exit(exitCode);
-}
-
-// Echo
-function handleEcho(params) {
-  console.log(params.join(" "));
-  rl.prompt(); // On affiche le prompt après l'exécution de la commande
-}
-
-// Type
-function handleType(params) {
-  const target = params[0];
-
-  if (!target) {
-    console.log(`undefined: not found`);
-  } else if (builtins.includes(target)) {
-    console.log(`${target} is a shell builtin`);
-  } else {
-    findExecutable(target);
-  }
-}
-
-// Fonction pour trouver un exécutable dans le PATH
-function findExecutable(target) {
-  const pathDirs = process.env.PATH ? process.env.PATH.split(pathSeparator) : []; // On récupère les dossiers du PATH et on les gère en fonction de l'OS
-
-  for (const dir of pathDirs) {
-    const fullPath = path.join(dir, target);
-
-    try {
-      if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-        fs.accessSync(fullPath, fs.constants.X_OK);
-        console.log(`${target} is ${fullPath}`);
-        return true
-      }
-    } catch (err) {
-      // On ignore l'erreur, on teste les autres chemins
-    }
-  }
-  console.log(`${target}: not found`);
-  return false;
-}
-
-
-
-
-
-
 
 
 

@@ -89,7 +89,7 @@ function handleMultipleMatches(matches, line) {
 
   if (tabPressCount === 2) {
     console.log('\n' + matches.join('  '));
-    process.stdout.write(`$ ${line}`); // On écrit manuellement le prompt + ligne
+    rl.prompt(); // On affiche le prompt
     return [[], line];
   }
 
