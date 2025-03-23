@@ -52,13 +52,19 @@ function handleCd(params, rl) {
     return;
   }
 
+  // On résout le chemin absolu (même pour un chemin relatif)
+  const resolvedPath = path.resolve(process.cwd(), targetPath);
+
   try {
-    process.chdir(targetPath); // Change le répertoire courant
-  } catch (err) {
+    const stat = fs.statSync(resolvedPath);
+    if (!stat.isDirectory()) throw new Error();
+
+    process.chdir(resolvedPath);
+  } catch {
     console.log(`cd: ${targetPath}: No such file or directory`);
   }
 
-  rl.prompt(); // Affiche le prompt après exécution
+  rl.prompt();
 }
 
 module.exports = {
