@@ -4,58 +4,100 @@ const path = require("path");
 let lastTabLine = null;
 let tabPressCount = 0;
 
+
+function getLongestCommonPrefix(strings) {
+  if (!strings.length) return '';
+  let prefix = strings[0];
+
+  for (let i = 1; i < strings.length; i++) {
+    while (!strings[i].startsWith(prefix)) {
+      prefix = prefix.slice(0, -1);
+      if (!prefix) return '';
+    }
+  }
+
+  return prefix;
+}
+
 // Crée la fonction de complétion utilisée par readline.
 function createCompleter(builtins, pathSeparator, rl) {
   return function completer(line) {
-    const completions = new Set();
+  const completions = buildCompletions.call(this, line, builtins, pathSeparator);
 
-    // Ajoute les commandes internes (builtins) possibles
-    addBuiltinsToCompletions(completions, line, builtins);
-    // Ajoute les exécutables présents dans le PATH
-    addExecutablesToCompletions(completions, line, pathSeparator);
+  const matches = Array.from(completions).sort(); // A faire avant le LCP (Longest Prefix Auto-completion)
+  const longestCommonPrefix = getLongestCommonPrefix(matches);
 
-    const matches = Array.from(completions).sort(); // Par ordre alphabétique
+  if (longestCommonPrefix.length > line.length) {
+    return completeWithLongestCommonPrefix.call(this, longestCommonPrefix, line, matches);
+  }
 
-    // Aucun match → cloche
-    if (matches.length === 0) {
-      process.stdout.write('\x07');
-      tabPressCount = 0;
-      lastTabLine = null;
-      return [[], line];
-    }
+  if (matches.length === 0) {
+    return handleNoMatch.call(this, line);
+  }
 
-    // Un seul match → autocomplétion directe + espace
-    if (matches.length === 1) {
-      tabPressCount = 0;
-      lastTabLine = null;
-      return [[matches[0] + ' '], line];
-    }
+  if (matches.length === 1) {
+    return completeUniqueMatch.call(this, matches[0], line);
+  }
 
-    // Plusieurs matches → affichage des possibilités
-    if (line === lastTabLine) {
-      tabPressCount++;
-    } else {
-      tabPressCount = 1;
-      lastTabLine = line;
-    }
+  return handleMultipleMatches.call(this, matches, line);
+};
 
-    // Premier <TAB> → cloche
-    if (tabPressCount === 1) {
-      process.stdout.write('\x07');
-      return [[], line];
-    }
-
-    // Deuxième <TAB> → afficher tous les résultats
-    if (tabPressCount === 2) {
-      console.log('\n' + matches.join('  ')); // 2 espaces entre les suggestions
-      rl.prompt();
-      process.stdout.write(line); // Réécrit la ligne tapée
-      return [[], line];
-    }
-
-    return [[], line]; // Pour éviter les effets secondaires
-  };
+function buildCompletions(line, builtins, pathSeparator) {
+  const completions = new Set();
+  addBuiltinsToCompletions(completions, line, builtins);
+  addExecutablesToCompletions(completions, line, pathSeparator);
+  return completions;
 }
+
+function completeWithLongestCommonPrefix(longestCommonPrefix, line, matches) {
+  tabPressCount = 0;
+  lastTabLine = null;
+  const filteredMatches = matches.filter(m => m.startsWith(longestCommonPrefix));
+
+  if (filteredMatches.length === 1 && filteredMatches[0] === longestCommonPrefix) {
+    return [[longestCommonPrefix + ' '], line];
+  }
+  
+  return [[longestCommonPrefix], line];
+}
+
+function handleNoMatch(line) {
+  process.stdout.write('\x07');
+  tabPressCount = 0;
+  lastTabLine = null;
+  return [[], line];
+}
+
+function completeUniqueMatch(match, line) {
+  tabPressCount = 0;
+  lastTabLine = null;
+  return [[match + ' '], line];
+}
+
+function handleMultipleMatches(matches, line) {
+  if (line === lastTabLine) {
+    tabPressCount++;
+  } else {
+    tabPressCount = 1;
+    lastTabLine = line;
+  }
+
+  if (tabPressCount === 1) {
+    process.stdout.write('\x07');
+    return [[], line];
+  }
+
+  if (tabPressCount === 2) {
+    console.log('\n' + matches.join('  '));
+    process.stdout.write(`$ ${line}`); // On écrit manuellement le prompt + ligne
+    return [[], line];
+  }
+
+  return [[], line];
+}
+}
+
+
 // Ajoute les commandes builtins qui commencent par le préfixe.
 function addBuiltinsToCompletions(completions, line, builtins) {
   for (const builtin of builtins) {
@@ -64,6 +106,7 @@ function addBuiltinsToCompletions(completions, line, builtins) {
     }
   }
 }
+
 
 // Parcourt les répertoires du PATH pour ajouter les exécutables.
 function addExecutablesToCompletions(completions, line, pathSeparator) {
