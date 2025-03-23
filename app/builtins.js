@@ -1,21 +1,25 @@
 const fs = require("fs");
 const path = require("path");
 
+// Ajoute les commandes builtins qui commencent par le préfixe.
 function handlePwd(params, rl) {
   console.log(process.cwd());
   rl.prompt();
 }
 
+// Gère la commande exit.
 function handleExit(params) {
   const exitCode = parseInt(params[0], 10) || 0;
   process.exit(exitCode);
 }
 
+// Gère la commande echo.
 function handleEcho(params, rl) {
   console.log(params.join(" "));
   rl.prompt();
 }
 
+// Affiche si la commande est un builtin ou un exécutable.
 function handleType(params, rl, builtins, pathSeparator) {
   const target = params[0];
   if (!target) {
@@ -29,6 +33,7 @@ function handleType(params, rl, builtins, pathSeparator) {
   rl.prompt();
 }
 
+// Trouve un exécutable dans le PATH.
 function findExecutable(target, pathSeparator) {
   const pathDirs = process.env.PATH ? process.env.PATH.split(pathSeparator) : [];
   for (const dir of pathDirs) {
@@ -43,7 +48,7 @@ function findExecutable(target, pathSeparator) {
   }
   return false;
 }
-
+// Ajoute les commandes builtins qui commencent par le préfixe.
 function handleCd(params, rl) {
   const targetPath = params[0];
 
